@@ -6,6 +6,7 @@ from models import setup_db, Question, Category, db
 
 QUESTIONS_PER_PAGE = 10
 
+
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
@@ -13,12 +14,14 @@ def create_app(test_config=None):
     if test_config is None:
         setup_db(app)
     else:
-        database_path = test_config.get('SQLALCHEMY_DATABASE_URI')
+        database_path = test_config.get("SQLALCHEMY_DATABASE_URI")
         setup_db(app, database_path=database_path)
 
     """
     @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
     """
+    CORS(app, resources={r"/*": {"origins": "*"}})
+
     with app.app_context():
         db.create_all()
 
@@ -26,12 +29,30 @@ def create_app(test_config=None):
     @TODO: Use the after_request decorator to set Access-Control-Allow
     """
 
+    @app.after_request
+    def after_request(response):
+        response.headers.add(
+            "Access-Control-Allow-Headers", "Content-Type,Authorization"
+        )
+        response.headers.add("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS")
+        return response
+
     """
     @TODO:
     Create an endpoint to handle GET requests
     for all available categories.
     """
 
+    @app.route("/categories", methods=["GET"])
+    def get_categories():
+        categories = Category.query.order_by(Category.id).all()
+
+        return jsonify(
+            {
+                "success": True,
+                "categories": {category.id: category.type for category in categories},
+            }
+        )
 
     """
     @TODO:
@@ -45,6 +66,37 @@ def create_app(test_config=None):
     ten questions per page and pagination at the bottom of the screen for three pages.
     Clicking on the page numbers should update the questions.
     """
+
+    @app.route("/questions", methods=["GET"])
+    def get_questions():
+        try:
+            page = int(request.args.get("page", "1"))
+        except (TypeError, ValueError):
+            abort(400)
+
+        if page < 1:
+            abort(400)
+
+        selection = Question.query.order_by(Question.id)
+        pagination = selection.paginate(
+            page=page, per_page=QUESTIONS_PER_PAGE, error_out=False
+        )
+        questions = [question.format() for question in pagination.items]
+
+        if not questions:
+            abort(404)
+
+        categories = Category.query.order_by(Category.id).all()
+
+        return jsonify(
+            {
+                "success": True,
+                "questions": questions,
+                "total_questions": pagination.total,
+                "categories": {category.id: category.type for category in categories},
+                "current_category": None,
+            }
+        )
 
     """
     @TODO:
@@ -104,4 +156,3 @@ def create_app(test_config=None):
     """
 
     return app
-
