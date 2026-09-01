@@ -313,5 +313,41 @@ def create_app(test_config=None):
     Create error handlers for all expected errors
     including 404 and 422.
     """
+    @app.errorhandler(400)
+    def bad_request(error):
+        print(f"400 error: {error}")
+        return jsonify({
+            "success": False,
+            "error": 400,
+            "message": "Bad Request: Invalid request parameters",
+        }), 400
+
+    @app.errorhandler(404)
+    def not_found(error):
+        print(f"404 error: {error}")
+        return jsonify({
+            "success": False,
+            "error": 404,
+            "message": "Resource Not Found",
+        }), 404
+
+    @app.errorhandler(422)
+    def unprocessable(error):
+        print(f"422 error: {error}")
+        return jsonify({
+            "success": False,
+            "error": 422,
+            "message": "Unprocessable Entity",
+        }), 422
+
+    @app.errorhandler(500)
+    def internal_server_error(error):
+        print(f"500 error: {error}")
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "error": 500,
+            "message": "An error has occurred, please try again later",
+        }), 500
 
     return app

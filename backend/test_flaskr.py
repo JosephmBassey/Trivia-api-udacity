@@ -256,6 +256,70 @@ class TriviaTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_400_error_response_is_json(self):
+        response = self.client.post("/quizzes", json=[])
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.get_json(),
+            {
+                "success": False,
+                "error": 400,
+                "message": "Bad Request: Invalid request parameters",
+            },
+        )
+
+    def test_404_error_response_is_json(self):
+        response = self.client.get("/missing-route")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(
+            response.get_json(),
+            {
+                "success": False,
+                "error": 404,
+                "message": "Resource Not Found",
+            },
+        )
+
+    def test_422_error_response_is_json(self):
+        response = self.client.post(
+            "/questions",
+            json={"question": "Incomplete question"},
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(
+            response.get_json(),
+            {
+                "success": False,
+                "error": 422,
+                "message": "Unprocessable Entity",
+            },
+        )
+
+    def test_500_error_response_is_json(self):
+        def raise_test_error():
+            raise RuntimeError("test error")
+
+        self.app.config["PROPAGATE_EXCEPTIONS"] = False
+        self.app.add_url_rule(
+            "/force-error",
+            "force_error",
+            raise_test_error,
+        )
+        response = self.client.get("/force-error")
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(
+            response.get_json(),
+            {
+                "success": False,
+                "error": 500,
+                "message": "An error has occurred, please try again later",
+            },
+        )
+
 
 # Make the tests conveniently executable
 if __name__ == "__main__":
