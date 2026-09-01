@@ -81,6 +81,80 @@ class TriviaTestCase(unittest.TestCase):
         )
         self.assertIn("GET", response.headers["Access-Control-Allow-Methods"])
 
+    def test_delete_question(self):
+        with self.app.app_context():
+            question = Question(
+                question="Temporary question",
+                answer="Temporary answer",
+                category=1,
+                difficulty=1,
+            )
+            question.insert()
+            question_id = question.id
+
+        response = self.client.delete(f"/questions/{question_id}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["deleted"], question_id)
+
+        with self.app.app_context():
+            self.assertIsNone(
+                Question.query.filter(Question.id == question_id).one_or_none()
+            )
+
+    def test_delete_unknown_question_returns_404(self):
+        response = self.client.delete("/questions/9999")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_create_question(self):
+        response = self.client.post(
+            "/questions",
+            json={
+                "question": "What is the test answer?",
+                "answer": "A successful POST",
+                "category": "1",
+                "difficulty": "2",
+            },
+        )
+        data = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+
+        with self.app.app_context():
+            question = Question.query.filter(
+                Question.id == data["created"]
+            ).one_or_none()
+            self.assertIsNotNone(question)
+            question.delete()
+
+    def test_create_question_rejects_missing_fields(self):
+        response = self.client.post(
+            "/questions", json={"question": "Incomplete question"}
+        )
+
+        self.assertEqual(response.status_code, 422)
+
+    def test_search_questions(self):
+        response = self.client.post("/questions/search", json={"searchTerm": "title"})
+        data = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+        self.assertGreater(data["total_questions"], 0)
+        self.assertTrue(
+            all(
+                "title" in question["question"].lower()
+                for question in data["questions"]
+            )
+        )
+
+    def test_search_questions_rejects_invalid_term(self):
+        response = self.client.post("/questions/search", json={"searchTerm": None})
+
+        self.assertEqual(response.status_code, 422)
+
 
 # Make the tests conveniently executable
 if __name__ == "__main__":

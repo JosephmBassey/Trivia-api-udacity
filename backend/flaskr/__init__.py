@@ -106,6 +106,23 @@ def create_app(test_config=None):
     This removal will persist in the database and when you refresh the page.
     """
 
+    @app.route("/questions/<int:question_id>", methods=["DELETE"])
+    def delete_question(question_id):
+        question = Question.query.filter(Question.id == question_id).one_or_none()
+
+        if question is None:
+            abort(404)
+
+        question.delete()
+
+        return jsonify(
+            {
+                "success": True,
+                "deleted": question_id,
+                "total_questions": Question.query.count(),
+            }
+        )
+
     """
     @TODO:
     Create an endpoint to POST a new question,
@@ -117,6 +134,45 @@ def create_app(test_config=None):
     of the questions list in the "List" tab.
     """
 
+    @app.route("/questions", methods=["POST"])
+    def create_question():
+        body = request.get_json()
+        if body is None:
+            abort(400)
+
+        question_text = body.get("question")
+        answer = body.get("answer")
+        category = body.get("category")
+        difficulty = body.get("difficulty")
+
+        if (
+            question_text is None
+            or answer is None
+            or category is None
+            or difficulty is None
+        ):
+            abort(422)
+
+        selected_category = Category.query.filter(Category.id == category).one_or_none()
+        if selected_category is None:
+            abort(422)
+
+        question = Question(
+            question=question_text,
+            answer=answer,
+            category=category,
+            difficulty=difficulty,
+        )
+        question.insert()
+
+        return jsonify(
+            {
+                "success": True,
+                "created": question.id,
+                "total_questions": Question.query.count(),
+            }
+        )
+
     """
     @TODO:
     Create a POST endpoint to get questions based on a search term.
@@ -127,6 +183,30 @@ def create_app(test_config=None):
     only question that include that string within their question.
     Try using the word "title" to start.
     """
+
+    @app.route("/questions/search", methods=["POST"])
+    def search_questions():
+        body = request.get_json()
+        if body is None:
+            abort(400)
+
+        search_term = body.get("searchTerm")
+        if search_term is None:
+            abort(422)
+
+        selection = Question.query.filter(
+            Question.question.ilike(f"%{search_term}%")
+        ).order_by(Question.id)
+        questions = [question.format() for question in selection.all()]
+
+        return jsonify(
+            {
+                "success": True,
+                "questions": questions,
+                "total_questions": len(questions),
+                "current_category": None,
+            }
+        )
 
     """
     @TODO:
