@@ -1,6 +1,8 @@
 .vscode
 __pycache__
 venv
+.venv
+*.pyc
 
 # OS generated files #
 ######################

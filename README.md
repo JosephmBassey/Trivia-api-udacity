@@ -18,13 +18,31 @@ Completing this trivia app will give you the ability to structure plan, implemen
 
 [Fork](https://help.github.com/en/articles/fork-a-repo) the project repository and [clone](https://help.github.com/en/articles/cloning-a-repository) your forked repository to your machine. Work on the project locally and make sure to push all your changes to the remote repository before submitting the link to your repository in the Classroom.
 
+## Quick Start
+
+Start PostgreSQL, then follow the complete
+[backend setup instructions](./backend/README.md).
+
+In a second terminal, start the frontend:
+
+```bash
+cd frontend
+nvm use 16
+npm install
+npm start
+```
+
+The Flask API runs at `http://127.0.0.1:5000` and the frontend opens at
+`http://localhost:3000`.
+
 ## About the Stack
 
 We started the full stack application for you. It is designed with some key functional areas:
 
 ### Backend
 
-The [backend](./backend/README.md) directory contains a partially completed Flask and SQLAlchemy server. You will work primarily in `__init__.py` to define your endpoints and can reference models.py for DB and SQLAlchemy setup. These are the files you'd want to edit in the backend:
+The [backend](./backend/README.md) directory contains the Flask and SQLAlchemy
+API implementation.
 
 1. `backend/flaskr/__init__.py`
 2. `backend/test_flaskr.py`
