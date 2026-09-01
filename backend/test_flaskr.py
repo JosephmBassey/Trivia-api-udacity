@@ -155,6 +155,107 @@ class TriviaTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 422)
 
+    def test_get_questions_by_category(self):
+        response = self.client.get("/categories/1/questions?page=1")
+        data = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+        self.assertEqual(data["current_category"], "Science")
+        self.assertLessEqual(len(data["questions"]), 10)
+        self.assertGreater(data["total_questions"], 0)
+        self.assertTrue(
+            all(question["category"] == 1 for question in data["questions"])
+        )
+
+    def test_get_questions_by_category_returns_404_for_empty_page(self):
+        response = self.client.get("/categories/1/questions?page=1000")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_get_questions_by_unknown_category(self):
+        response = self.client.get("/categories/9999/questions")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_play_quiz(self):
+        response = self.client.post(
+            "/quizzes",
+            json={
+                "previous_questions": [20],
+                "quiz_category": {"id": 0, "type": "All"},
+            },
+        )
+        data = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+        self.assertIsNotNone(data["question"])
+        self.assertNotEqual(data["question"]["id"], 20)
+
+    def test_play_quiz_by_category(self):
+        response = self.client.post(
+            "/quizzes",
+            json={
+                "previous_questions": [],
+                "quiz_category": {"id": "1", "type": "Science"},
+            },
+        )
+        data = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data["question"]["category"], 1)
+
+    def test_play_quiz_returns_none_when_complete(self):
+        with self.app.app_context():
+            question_ids = [question.id for question in Question.query.all()]
+
+        response = self.client.post(
+            "/quizzes",
+            json={
+                "previous_questions": question_ids,
+                "quiz_category": {"id": 0, "type": "All"},
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.get_json()["question"])
+
+    def test_play_quiz_rejects_invalid_request(self):
+        response = self.client.post(
+            "/quizzes",
+            json={"quiz_category": {"id": 1}},
+        )
+
+        self.assertEqual(response.status_code, 422)
+
+    def test_play_quiz_rejects_invalid_types(self):
+        response = self.client.post(
+            "/quizzes",
+            json={
+                "previous_questions": "not-a-list",
+                "quiz_category": "not-an-object",
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+
+    def test_play_quiz_rejects_non_object_body(self):
+        response = self.client.post("/quizzes", json=[])
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_play_quiz_rejects_unknown_category(self):
+        response = self.client.post(
+            "/quizzes",
+            json={
+                "previous_questions": [],
+                "quiz_category": {"id": 9999, "type": "Unknown"},
+            },
+        )
+
+        self.assertEqual(response.status_code, 404)
+
 
 # Make the tests conveniently executable
 if __name__ == "__main__":

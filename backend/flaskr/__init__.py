@@ -216,6 +216,44 @@ def create_app(test_config=None):
     categories in the left column will cause only questions of that
     category to be shown.
     """
+    @app.route("/categories/<int:category_id>/questions", methods=["GET"])
+    def get_questions_by_category(category_id):
+        category = Category.query.filter(
+            Category.id == category_id
+        ).one_or_none()
+
+        if category is None:
+            abort(404)
+
+        try:
+            page = int(request.args.get("page", "1"))
+        except (TypeError, ValueError):
+            abort(400)
+
+        if page < 1:
+            abort(400)
+
+        selection = Question.query.filter(
+            Question.category == category_id
+        ).order_by(Question.id)
+        pagination = selection.paginate(
+            page=page,
+            per_page=QUESTIONS_PER_PAGE,
+            error_out=False,
+        )
+        questions = [question.format() for question in pagination.items]
+
+        if page > 1 and not questions:
+            abort(404)
+
+        return jsonify(
+            {
+                "success": True,
+                "questions": questions,
+                "total_questions": pagination.total,
+                "current_category": category.type,
+            }
+        )
 
     """
     @TODO:
@@ -228,6 +266,47 @@ def create_app(test_config=None):
     one question at a time is displayed, the user is allowed to answer
     and shown whether they were correct or not.
     """
+    @app.route("/quizzes", methods=["POST"])
+    def play_quiz():
+        body = request.get_json()
+        if body is None:
+            abort(400)
+        if type(body) is not dict:
+            abort(400)
+
+        previous_questions = body.get("previous_questions")
+        quiz_category = body.get("quiz_category")
+        if previous_questions is None or quiz_category is None:
+            abort(422)
+        if not isinstance(previous_questions, list) or not isinstance(
+            quiz_category, dict
+        ):
+            abort(422)
+
+        category_id = quiz_category.get("id")
+        if category_id is None:
+            abort(422)
+
+        question_query = Question.query.filter(
+            Question.id.notin_(previous_questions)
+        )
+
+        if category_id not in (0, "0"):
+            if Category.query.filter(
+                Category.id == category_id
+            ).one_or_none() is None:
+                abort(404)
+            question_query = question_query.filter(
+                Question.category == category_id
+            )
+
+        questions = question_query.all()
+        question = random.choice(questions).format() if questions else None
+
+        return jsonify({
+            "success": True,
+            "question": question,
+        })
 
     """
     @TODO:
