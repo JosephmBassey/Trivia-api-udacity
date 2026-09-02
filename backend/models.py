@@ -1,13 +1,12 @@
-from sqlalchemy import Column, ForeignKey, Integer, String
-from flask_sqlalchemy import SQLAlchemy
+import os
 
-database_name = "trivia"
-database_user = "postgres"
-database_password = "postgres"
-database_host = "localhost:5432"
-database_path = (
-    f"postgresql://{database_user}:{database_password}@{database_host}/{database_name}"
-)
+from dotenv import load_dotenv
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Column, Integer, String
+
+load_dotenv()
+
+database_path = os.getenv("DATABASE_URL")
 
 db = SQLAlchemy()
 
@@ -18,6 +17,9 @@ setup_db(app)
 
 
 def setup_db(app, database_path=database_path):
+    if not database_path:
+        raise RuntimeError("DATABASE_URL is not configured")
+
     app.config["SQLALCHEMY_DATABASE_URI"] = database_path
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)

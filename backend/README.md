@@ -18,15 +18,25 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Create the local environment file:
+
+```bash
+cp ../.env.example ../.env
+```
+
+Update both connection strings in `.env` with your PostgreSQL credentials:
+
+```text
+DATABASE_URL=postgresql://username:password@localhost:5432/trivia
+TEST_DATABASE_URL=postgresql://username:password@localhost:5432/trivia_test
+```
+
 Create and seed the development database:
 
 ```bash
 createdb trivia
 psql trivia < trivia.psql
 ```
-
-The PostgreSQL username, password, host, and database name are configured in
-`models.py`.
 
 ## Run the server
 
@@ -49,6 +59,9 @@ createdb trivia_test
 psql trivia_test < trivia.psql
 python3 test_flaskr.py
 ```
+
+Tests use `TEST_DATABASE_URL` from `.env`; the development server uses
+`DATABASE_URL`.
 
 ## API endpoints
 
